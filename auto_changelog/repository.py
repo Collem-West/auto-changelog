@@ -9,6 +9,7 @@ from git.objects import Commit
 
 import auto_changelog
 from auto_changelog.domain_model import Changelog, RepositoryInterface, default_tag_pattern
+from auto_changelog.helper_functions.common_helpers import words_in_message
 
 
 class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-methods
@@ -38,6 +39,7 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
         diff_url: Optional[str] = None,
         starting_commit: str = "",
         stopping_commit: str = "HEAD",
+        ignore: str = ""
     ) -> Changelog:
         locallogger = logging.getLogger("repository.generate_changelog")
         issue_url = issue_url or self._issue_from_git_remote_url(remote)
@@ -64,6 +66,10 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
                 locallogger.debug("Skipping unreleased commit %s", sha)
                 continue
             skip = False
+
+            if ignore and words_in_message(commit.message, ignore.split(',')):
+                locallogger.debug(f"Commit message contains an ignored word:\n{commit.message}")
+                continue
 
             if first_commit and commit not in self.commit_tags_index:
                 # if no last version specified by the user => consider HEAD
@@ -215,7 +221,7 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
     def _parse_conventional_commit(message: str) -> Tuple[str, str, str, str, str]:
         type_ = scope = description = body_footer = body = footer = ""
         # TODO this is less restrictive version of re. I have somewhere more restrictive one, maybe as option?
-        match = re.match(r"^(\w+)(\(\w+\))?!?: (.*)(\n\n[\w\W]*)?$", message.strip())
+        match = re.match(r"^(\w+)\(\w+\)(\(\w+\))?!?: (.*)(\n\n[\w\W]*)?$", message.strip())
         if match:
             type_, scope, description, body_footer = match.groups(default="")
         else:

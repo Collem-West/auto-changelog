@@ -7,6 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from auto_changelog.__main__ import main
+import auto_changelog
 
 
 # pylint: disable=redefined-outer-name
@@ -535,6 +536,59 @@ def test_empty_line_body(test_repo, runner, open_changelog):
         f"# Changelog\n\n## Unreleased ({date.today().strftime('%Y-%m-%d')})\n\n#### New Features\n\n* Add file #1\n"
     )
     assert changelog == assert_content
+
+
+@pytest.mark.parametrize(
+    "commands",
+    [
+        [
+            'git commit --allow-empty -q -m "fix: Some file fix"',
+            "git tag 1.0.0",
+            "git remote add origin https://github.com/Michael-F-Bryan/auto-changelog.git",
+        ]
+    ],
+)
+def test_commit_message_with_ignored_words(runner, open_changelog):
+    result = runner.invoke(main, ["--ignore", 'Some'])
+    assert result.exit_code == 0, result.stderr
+    changelog = open_changelog().read()
+    assert 'Some file' not in changelog
+
+
+@pytest.mark.parametrize(
+    "commands",
+    [
+        [
+            'git commit --allow-empty -q -m "fix: Some file fix"',
+            "git tag 1.0.0",
+            "git remote add origin https://github.com/Michael-F-Bryan/auto-changelog.git",
+        ]
+    ],
+)
+def test_commit_message_without_ignored_words(runner, open_changelog):
+    result = runner.invoke(main, ["--ignore", 'feat'])
+    assert result.exit_code == 0, result.stderr
+    changelog = open_changelog().read()
+    assert 'Some file' in changelog
+
+
+@pytest.mark.parametrize(
+    "commands",
+    [
+        [
+            'git commit --allow-empty -q -m "fix: Some file fix"',
+            "git tag 1.0.0",
+            "git remote add origin https://github.com/Michael-F-Bryan/auto-changelog.git",
+        ]
+    ],
+)
+def test_set_gitlab_pattern(runner, open_changelog):
+    result = runner.invoke(main, ["--gitlab"])
+    assert result.exit_code == 0, result.stderr
+    assert auto_changelog.default_issue_url == auto_changelog.gitlab_issue_url
+    assert auto_changelog.default_issue_pattern == auto_changelog.gitlab_issue_pattern
+    assert auto_changelog.default_diff_url == auto_changelog.gitlab_diff_url
+    assert auto_changelog.default_last_release == auto_changelog.gitlab_last_release
 
 
 @pytest.mark.parametrize(

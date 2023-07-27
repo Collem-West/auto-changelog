@@ -81,6 +81,7 @@ def generate_changelog(repository: RepositoryInterface, presenter: PresenterInte
     is_flag=True,
     help="set logging level to DEBUG",
 )
+@click.option("-i", "--ignore", type=str, help="Ignore commit with specific keywords in message")
 def main(  # pylint: disable=too-many-arguments,too-many-locals
     path_repo,
     gitlab,
@@ -101,6 +102,7 @@ def main(  # pylint: disable=too-many-arguments,too-many-locals
     starting_commit: str,
     stopping_commit: str,
     debug: bool,
+    ignore: str
 ):
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -134,6 +136,7 @@ def main(  # pylint: disable=too-many-arguments,too-many-locals
         diff_url=diff_url,
         starting_commit=starting_commit,
         stopping_commit=stopping_commit,
+        ignore=ignore
     )
 
     if stdout:
